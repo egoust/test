@@ -1,0 +1,52 @@
+heat_template_version: 2015-04-30
+
+description: Template to deploy Virtual Network
+
+parameters:
+
+  name:    
+    type: string
+  network_ipam_refs_data_ipam_subnets_subnet_ip_prefix:    
+    type: string
+  network_ipam_refs_data_ipam_subnets_subnet_ip_prefix_len:    
+    type: string
+  network_ipam_refs:
+    type: string  
+    default: "default-domain:default-project:default-network-ipam"
+  virtual_network_properties_allow_transit:
+    type: boolean  
+  virtual_network_properties_forwarding_mode:
+    type: string
+    constraints:
+      - allowed_values: [l2_l3, l2, l3]
+  virtual_network_properties_rpf:
+    type: string
+    constraints:
+      - allowed_values: [enable, disable]
+
+resources: 
+ 
+  virtual_network:
+    type: OS::ContrailV2::VirtualNetwork  
+    properties:
+      name: { get_param: name }
+      network_ipam_refs: [{ get_param: network_ipam_refs }]
+      network_ipam_refs_data:
+        [{
+          network_ipam_refs_data_ipam_subnets:
+            [{
+              network_ipam_refs_data_ipam_subnets_subnet:
+                {
+                  network_ipam_refs_data_ipam_subnets_subnet_ip_prefix: { get_param: network_ipam_refs_data_ipam_subnets_subnet_ip_prefix },
+                  network_ipam_refs_data_ipam_subnets_subnet_ip_prefix_len: { get_param: network_ipam_refs_data_ipam_subnets_subnet_ip_prefix_len },
+                },
+            }]
+         }]
+      virtual_network_properties:
+        virtual_network_properties_allow_transit: { get_param: virtual_network_properties_allow_transit }
+        virtual_network_properties_forwarding_mode: { get_param: virtual_network_properties_forwarding_mode }
+        virtual_network_properties_rpf: { get_param: virtual_network_properties_rpf }
+        
+outputs:
+  show:
+    value: {get_attr: [virtual_network, show]}
