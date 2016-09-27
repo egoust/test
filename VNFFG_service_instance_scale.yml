@@ -1,0 +1,96 @@
+heat_template_version: 2015-04-30
+ 
+parameters:
+
+  vn_left:    
+    type: string
+  vn_right:    
+    type: string
+  service_instance:    
+    type: string
+  if_left_parent_interface:
+    type: string
+    label: Left vSRX parent port 
+    description: ID or FQDN of an existing port
+  if_left_mac_address:
+    type: string
+    label: Left vSRX subinterface MAC address
+  if_right_parent_interface:
+    type: string
+    label: Right vSRX parent port 
+    description: ID or FQDN of an existing port 
+  if_right_mac_address:
+    type: string
+    label: Right vSRX subinterface MAC address    
+  vlan_tag:
+    type: string
+    label: VLAN tag
+ 
+resources:
+  
+
+  PortTuple:
+    type: OS::ContrailV2::PortTuple
+    properties:
+      service_instance: { get_param: service_instance }
+ 
+  if_left:
+    type: OS::ContrailV2::VirtualMachineInterface
+    depends_on: [ PortTuple ]
+    properties:
+      name:
+        str_replace:
+          template: VNF_Port_Left_Sibif_$vlan
+          params:
+           $vlan: {get_param: vlan_tag}
+      virtual_machine_interface_properties:
+        {
+          virtual_machine_interface_properties_service_interface_type: "left",
+        }
+      port_tuple_refs: [{ get_resource: PortTuple }]
+      virtual_network_refs: [{ get_param: vn_left }]
+      virtual_machine_interface_refs: [{ get_param: if_left_parent_interface }]
+      virtual_machine_interface_properties:
+        virtual_machine_interface_properties_sub_interface_vlan_tag: { get_param: vlan_tag }
+      virtual_machine_interface_mac_addresses:
+        virtual_machine_interface_mac_addresses_mac_address: [{ get_param: if_left_mac_address }]
+   
+  if_right:
+    type: OS::ContrailV2::VirtualMachineInterface
+    depends_on: [ PortTuple ]
+    properties:
+      name:
+        str_replace:
+          template: VNF_Port_Right_Sibif_$vlan
+          params:
+           $vlan: {get_param: vlan_tag}
+      virtual_machine_interface_properties:
+        {
+          virtual_machine_interface_properties_service_interface_type: "right",
+        }
+      port_tuple_refs: [{ get_resource: PortTuple }]
+      virtual_network_refs: [{ get_param: vn_right }]
+      virtual_machine_interface_refs: [{ get_param: if_right_parent_interface }]
+      virtual_machine_interface_properties:
+        virtual_machine_interface_properties_sub_interface_vlan_tag: { get_param: vlan_tag }
+      virtual_machine_interface_mac_addresses:
+        virtual_machine_interface_mac_addresses_mac_address: [{ get_param: if_right_mac_address }]
+      
+  if_left_IP:
+    type: OS::ContrailV2::InstanceIp
+    depends_on: [ if_left ]
+    properties:
+      virtual_machine_interface_refs: [{ get_resource: if_left }]
+      virtual_network_refs: [{ get_param: vn_left }]
+ 
+  if_right_IP:
+    type: OS::ContrailV2::InstanceIp
+    depends_on: [ if_right ]
+    properties:
+      virtual_machine_interface_refs: [{ get_resource: if_right }]
+      virtual_network_refs: [{ get_param: vn_right }]
+     
+outputs:
+
+  port_tuple_show:
+    value: {get_attr: [PortTuple, show]}

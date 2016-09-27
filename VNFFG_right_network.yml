@@ -1,0 +1,75 @@
+heat_template_version: 2015-04-30
+ 
+parameters:
+
+  subnets:    
+    type: json
+  allow_transit:
+    type: boolean
+    default: False    
+  forwarding_mode:
+    type: string
+    label: Forwarding mode for virtual networks 
+    constraints:
+      - allowed_values: [l2_l3, l2, l3]
+    default: "l2_l3"
+  rpf:
+    type: string
+    constraints:
+      - allowed_values: [enable, disable]
+    default: "disable"
+  sfcgw_right_parent_interface:
+    type: string
+    label: Right SFCGW parent port 
+    description: ID or FQDN of an existing port 
+  sfcgw_right_mac_address:
+    type: string
+    label: Right SFCGW subinterface MAC address    
+  vlan_tag:
+    type: string
+    label: VLAN tag
+    
+resources:
+ 
+  vn_right:
+    type: OS::ContrailV2::VirtualNetwork  
+    properties:
+      name:         
+        str_replace:
+          template: right_$vlan
+          params:
+           $vlan: {get_param: vlan_tag}
+      network_ipam_refs: ["default-domain:default-project:default-network-ipam"]
+      network_ipam_refs_data:
+          [{ network_ipam_refs_data_ipam_subnets: { get_param: subnets } }]
+      virtual_network_properties:
+        virtual_network_properties_allow_transit: { get_param: allow_transit }
+        virtual_network_properties_forwarding_mode: { get_param: forwarding_mode }
+        virtual_network_properties_rpf: { get_param: rpf }
+   
+  if_sfcgw_right:
+    type: OS::ContrailV2::VirtualMachineInterface
+    properties:
+      name:
+        str_replace:
+          template: SFC_Port_Right_Sibif_$vlan
+          params:
+           $vlan: {get_param: vlan_tag}
+      virtual_network_refs: [{ list_join: [':', { get_attr: [ vn_right, fq_name ] } ] }]
+      virtual_machine_interface_refs: [{ get_param: sfcgw_right_parent_interface }]
+      virtual_machine_interface_properties:
+        virtual_machine_interface_properties_sub_interface_vlan_tag: { get_param: vlan_tag }
+      virtual_machine_interface_mac_addresses:
+        virtual_machine_interface_mac_addresses_mac_address: [{ get_param: sfcgw_right_mac_address }]        
+ 
+  if_sfcgw_right_IP:
+    type: OS::ContrailV2::InstanceIp
+    depends_on: [ if_sfcgw_right ]
+    properties:
+      virtual_machine_interface_refs: [{ get_resource: if_sfcgw_right }]
+      virtual_network_refs: [{ list_join: [':', { get_attr: [ vn_right, fq_name ] } ] }]
+      
+outputs:
+
+  vn_right_show:
+    value: {get_attr: [vn_right, show]}
