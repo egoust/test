@@ -1,0 +1,23 @@
+heat_template_version: 2015-04-30
+
+description: Template to create security group
+
+parameters:
+
+  name:  
+    type: string
+  rules:
+    type: json
+    default: []
+    
+resources:
+  
+  security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: { get_param: name }
+      rules: { get_param: rules }
+      
+outputs:
+  security_group:
+    value: {get_attr: [security_group, show]}
