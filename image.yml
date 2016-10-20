@@ -1,0 +1,28 @@
+heat_template_version: 2015-04-30
+
+description: Template to upload image
+
+parameters:
+
+  name:  
+    type: string
+  disk_format:
+    constraints:
+      - allowed_values: [ami, ari, aki, vhd, vmdk, raw, qcow2, vdi, iso]
+    type: string 
+  location:
+    type: string 
+    
+resources:
+  
+  image:
+    type: OS::Glance::Image
+    properties:
+      name: { get_param: name }
+      container_format: "bare"
+      disk_format: { get_param: disk_format }
+      location: { get_param: location }
+      
+outputs:
+  image:
+    value: {get_attr: [image, show]}
